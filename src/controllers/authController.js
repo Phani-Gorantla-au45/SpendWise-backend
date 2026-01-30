@@ -38,7 +38,7 @@ exports.sendOtp = async (req, res) => {
   res.json({ message: "OTP sent" });
 };
 
-//Verify otp
+//Verify otp with mobile number
 exports.verifyOtp = async (req, res) => {
   const { mobile, otp } = req.body;
 
