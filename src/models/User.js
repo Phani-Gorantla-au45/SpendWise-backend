@@ -1,12 +1,22 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+import { v4 as uuidv4 } from "uuid";
 
-const userSchema = new mongoose.Schema({
-  firstName: String,
-  lastName: String,
-  email: { type: String, unique: true },
-  mobile: { type: String, unique: true },
-  otp: String,
-  otpExpiry: Date
-});
+const userSchema = new mongoose.Schema(
+  {
+    _id: { type: String, default: uuidv4 },
+    phone: { type: String, required: true, unique: true },
 
-module.exports = mongoose.model("User", userSchema);
+    // Step 2 fields (not required initially)
+    First_name: { type: String },
+    Last_name: { type: String },
+    email: { type: String, unique: true, sparse: true },
+
+    // OTP related
+    otp: { type: String },
+    otpExpiry: { type: Date },
+    isVerified: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+export default mongoose.model("User", userSchema);

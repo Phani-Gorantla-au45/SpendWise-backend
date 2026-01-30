@@ -8,8 +8,8 @@ const {
 
 const router = express.Router();
 
-router.post("/register", registerUser);
-router.post("/login", sendOtp);
+router.post("/register",authMiddleware, registerUser);
+router.post("/sendOtp", sendOtp);
 router.post("/verify-otp", verifyOtp);
 
 // 🔒 Protected route
