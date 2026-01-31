@@ -1,11 +1,16 @@
 console.log("🔥 THIS INDEX FILE IS RUNNING 🔥");
 
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-require("dotenv").config();
-
-const authRoutes = require("./src/routes/authRoutes");
+// const express = require("express");
+// const mongoose = require("mongoose");
+// const cors = require("cors");
+// require("dotenv").config();
+import express from "express"
+import mongoose from "mongoose"
+import cors from "cors"
+import dotenv from "dotenv"
+import authRoutes from "./src/routes/authRoutes.js"
+dotenv.config();
+// const authRoutes = require("./src/routes/authRoutes");
 
 const app = express();
 

@@ -1,18 +1,17 @@
-const authMiddleware = require("../middleware/authMiddleware");
-const express = require("express");
-const {
+import express from "express";
+import authMiddleware from "../middleware/authMiddleware.js";
+import {
   registerUser,
   sendOtp,
   verifyOtp
-} = require("../controllers/authController");
+} from "../controllers/authController.js";
 
 const router = express.Router();
 
-router.post("/register",authMiddleware, registerUser);
+router.post("/register", authMiddleware, registerUser);
 router.post("/sendOtp", sendOtp);
 router.post("/verify-otp", verifyOtp);
 
-// 🔒 Protected route
 router.get("/profile", authMiddleware, (req, res) => {
   res.json({
     message: "Protected profile data",
@@ -20,4 +19,4 @@ router.get("/profile", authMiddleware, (req, res) => {
   });
 });
 
-module.exports = router;
+export default router;
