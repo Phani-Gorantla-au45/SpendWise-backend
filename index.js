@@ -18,8 +18,8 @@ app.use(cors());
 app.use(express.json());
 
 // 🔴 ADD THIS TEST ROUTE
-app.post("/ping", (req, res) => {
-  res.json({ message: "Ping working" });
+app.get("/", (req, res) => {
+  res.send("Spendwise API is running 🚀");
 });
 
 // Auth routes
