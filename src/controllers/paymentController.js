@@ -306,47 +306,76 @@ export const verifyPayment = async (req, res) => {
   }
 };
 export const razorpayWebhook = async (req, res) => {
+  console.log("==================================");
+  console.log("🔥 RAZORPAY WEBHOOK RECEIVED 🔥");
+  console.log("Time:", new Date().toISOString());
+  console.log("HEADERS:", req.headers);
+  console.log("BODY:", JSON.stringify(req.body, null, 2));
+  console.log("==================================");
+
   try {
-    console.log("🔥 WEBHOOK HIT:", req.body.event);
+    console.log("👉 Event from Razorpay:", req.body.event);
+
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    console.log("Webhook secret loaded:", !!secret);
 
     const signature = req.headers["x-razorpay-signature"];
+    console.log("Received Razorpay Signature:", signature);
 
     const generatedSignature = crypto
       .createHmac("sha256", secret)
       .update(JSON.stringify(req.body))
       .digest("hex");
 
+    console.log("Generated Signature:", generatedSignature);
+
     if (generatedSignature !== signature) {
+      console.error("❌ SIGNATURE MISMATCH");
       return res.status(400).json({ message: "Invalid webhook signature" });
     }
+
+    console.log("✅ Signature verified successfully");
 
     const event = req.body.event;
 
     if (event === "payment.captured") {
-      const payment = req.body.payload.payment.entity;
+      console.log("💰 PAYMENT CAPTURED EVENT");
 
-      await Payment.findOneAndUpdate(
+      const payment = req.body.payload.payment.entity;
+      console.log("Payment Entity:", payment);
+
+      const updated = await Payment.findOneAndUpdate(
         { orderId: payment.order_id },
         {
           paymentId: payment.id,
           status: "SUCCESS",
         },
+        { new: true }
       );
+
+      console.log("✅ Payment updated in DB:", updated);
     }
 
     if (event === "payment.failed") {
-      const payment = req.body.payload.payment.entity;
+      console.log("❌ PAYMENT FAILED EVENT");
 
-      await Payment.findOneAndUpdate(
+      const payment = req.body.payload.payment.entity;
+      console.log("Payment Entity:", payment);
+
+      const updated = await Payment.findOneAndUpdate(
         { orderId: payment.order_id },
         { status: "FAILED" },
+        { new: true }
       );
+
+      console.log("❌ Payment marked FAILED in DB:", updated);
     }
 
+    console.log("✅ Webhook processing completed");
     res.json({ received: true });
+
   } catch (err) {
-    console.error("Webhook error:", err);
+    console.error("🔥 WEBHOOK ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 };
