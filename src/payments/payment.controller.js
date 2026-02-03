@@ -73,12 +73,12 @@ export const razorpayWebhook = async (req, res) => {
 
     const generatedSignature = crypto
       .createHmac("sha256", secret)
-      .update(req.body) // ✅ req.body IS RAW BUFFER
+      .update(req.body) // RAW BUFFER
       .digest("hex");
 
     if (generatedSignature !== signature) {
-      console.error("❌ SIGNATURE MISMATCH");
-      return res.status(400).json({ message: "Invalid signature" });
+      console.error("❌ SIGNATURE MISMATCH — ignored");
+      return res.status(200).json({ ok: true }); // 👈 IMPORTANT
     }
 
     console.log("✅ Signature verified");
@@ -89,8 +89,11 @@ export const razorpayWebhook = async (req, res) => {
       const payment = event.payload.payment.entity;
 
       await Payment.findOneAndUpdate(
-        { razorpayOrderId: payment.order_id },
-        { paymentId: payment.id, status: "SUCCESS" }
+        { orderId: payment.order_id },
+        {
+          paymentId: payment.id,
+          status: "SUCCESS",
+        }
       );
     }
 
@@ -100,6 +103,7 @@ export const razorpayWebhook = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 
