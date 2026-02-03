@@ -150,18 +150,31 @@ import crypto from "crypto";
 import Payment from "../models/Payment.js";
 import Order from "../models/Order.js";
 
-//create order
+/**
+ * =========================
+ * CREATE RAZORPAY ORDER
+ * =========================
+ */
 export const createOrder = async (req, res) => {
+  console.log("===== CREATE ORDER API HIT =====");
+  console.log("HEADERS:", req.headers);
+  console.log("REQ.USER:", req.user);
+  console.log("BODY:", req.body);
+
   try {
     const { amount } = req.body;
     const userId = req.user.id;
+
+    console.log("Creating Razorpay order with amount:", amount);
 
     const razorpayOrder = await razorpay.orders.create({
       amount: amount * 100,
       currency: "INR",
     });
 
-    await Payment.create({
+    console.log("Razorpay order created:", razorpayOrder);
+
+    const paymentDoc = await Payment.create({
       userId,
       razorpayOrderId: razorpayOrder.id,
       amount,
@@ -169,62 +182,104 @@ export const createOrder = async (req, res) => {
       status: "PENDING",
     });
 
-    res.json({ orderId: razorpayOrder.id, key: process.env.RAZORPAY_KEY_ID });
+    console.log("Payment document saved:", paymentDoc);
+
+    res.json({
+      orderId: razorpayOrder.id,
+      key: process.env.RAZORPAY_KEY_ID,
+    });
   } catch (err) {
+    console.error("❌ CREATE ORDER ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 };
-//razor pay web hook
+
+/**
+ * =========================
+ * RAZORPAY WEBHOOK
+ * =========================
+ */
 export const razorpayWebhook = async (req, res) => {
+  console.log("===== RAZORPAY WEBHOOK HIT =====");
+  console.log("HEADERS:", req.headers);
+  console.log("BODY:", req.body);
+
   try {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const signature = req.headers["x-razorpay-signature"];
+
+    console.log("Webhook signature received:", signature);
 
     const generatedSignature = crypto
       .createHmac("sha256", secret)
       .update(JSON.stringify(req.body))
       .digest("hex");
 
-    if (generatedSignature !== signature)
+    console.log("Generated signature:", generatedSignature);
+
+    if (generatedSignature !== signature) {
+      console.error("❌ Invalid webhook signature");
       return res.status(400).json({ message: "Invalid signature" });
+    }
 
     const event = req.body.event;
     const paymentEntity = req.body.payload.payment.entity;
 
+    console.log("Webhook event:", event);
+    console.log("Payment entity:", paymentEntity);
+
     if (event === "payment.captured") {
-      await Payment.findOneAndUpdate(
+      const updated = await Payment.findOneAndUpdate(
         { razorpayOrderId: paymentEntity.order_id },
-        { paymentId: paymentEntity.id, status: "SUCCESS" }
+        { paymentId: paymentEntity.id, status: "SUCCESS" },
+        { new: true }
       );
+      console.log("✅ Payment marked SUCCESS:", updated);
     }
 
     if (event === "payment.failed") {
-      await Payment.findOneAndUpdate(
+      const updated = await Payment.findOneAndUpdate(
         { razorpayOrderId: paymentEntity.order_id },
-        { status: "FAILED" }
+        { status: "FAILED" },
+        { new: true }
       );
+      console.log("❌ Payment marked FAILED:", updated);
     }
 
     res.json({ received: true });
   } catch (err) {
+    console.error("❌ WEBHOOK ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 };
-//save gift cards
+
+/**
+ * =========================
+ * SAVE GIFT CARD ORDER
+ * =========================
+ */
 export const saveGiftCardOrder = async (req, res) => {
+  console.log("===== SAVE GIFT CARD ORDER HIT =====");
+  console.log("BODY:", req.body);
+
   try {
     const { goldbeeResponse } = req.body;
+
+    console.log("Goldbee response:", goldbeeResponse);
 
     const order = await Order.create({
       refno: goldbeeResponse.refno,
       cardNumber: goldbeeResponse.cardDetails?.[0]?.cardNumber,
       cardPin: goldbeeResponse.cardDetails?.[0]?.cardPin,
       status: goldbeeResponse.status,
-      fullResponse: goldbeeResponse
+      fullResponse: goldbeeResponse,
     });
+
+    console.log("✅ Gift card order saved:", order);
 
     res.json({ success: true });
   } catch (err) {
+    console.error("❌ SAVE GIFT CARD ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 };
