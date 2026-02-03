@@ -144,6 +144,8 @@
 //   }
 // };
 
+
+
 // controllers/paymentController.js
 import razorpay from "../config/razorpayClient.js";
 import crypto from "crypto";
@@ -196,13 +198,88 @@ export const createOrder = async (req, res) => {
 
 /**
  * =========================
+ * VERIFY PAYMENT (FRONTEND CALLBACK)
+ * =========================
+ */
+export const verifyPayment = async (req, res) => {
+  console.log("===== VERIFY PAYMENT API HIT =====");
+  console.log("BODY:", req.body);
+
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    } = req.body;
+
+    console.log("Order ID:", razorpay_order_id);
+    console.log("Payment ID:", razorpay_payment_id);
+    console.log("Signature:", razorpay_signature);
+
+    const isValid = verifySignature(
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature
+    );
+
+    console.log("Signature valid?", isValid);
+
+    if (!isValid) {
+      console.error("❌ Signature verification failed");
+
+      await Payment.findOneAndUpdate(
+        { razorpayOrderId: razorpay_order_id },
+        { status: "FAILED" }
+      );
+
+      return res.status(400).json({ success: false });
+    }
+
+    const updated = await Payment.findOneAndUpdate(
+      { razorpayOrderId: razorpay_order_id },
+      {
+        paymentId: razorpay_payment_id,
+        status: "SUCCESS",
+      },
+      { new: true }
+    );
+
+    console.log("✅ Payment verified & updated:", updated);
+
+    res.json({ success: true, message: "Payment verified" });
+  } catch (err) {
+    console.error("❌ VERIFY PAYMENT ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * =========================
+ * VERIFY RAZORPAY SIGNATURE
+ * =========================
+ */
+function verifySignature(orderId, paymentId, signature) {
+  const body = `${orderId}|${paymentId}`;
+
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(body)
+    .digest("hex");
+
+  console.log("Expected Signature:", expectedSignature);
+
+  return expectedSignature === signature;
+}
+
+/**
+ * =========================
  * RAZORPAY WEBHOOK
  * =========================
  */
 export const razorpayWebhook = async (req, res) => {
   console.log("===== RAZORPAY WEBHOOK HIT =====");
   console.log("HEADERS:", req.headers);
-  console.log("BODY:", req.body);
+  console.log("BODY:", JSON.stringify(req.body, null, 2));
 
   try {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -260,7 +337,7 @@ export const razorpayWebhook = async (req, res) => {
  */
 export const saveGiftCardOrder = async (req, res) => {
   console.log("===== SAVE GIFT CARD ORDER HIT =====");
-  console.log("BODY:", req.body);
+  console.log("BODY:", JSON.stringify(req.body, null, 2));
 
   try {
     const { goldbeeResponse } = req.body;
