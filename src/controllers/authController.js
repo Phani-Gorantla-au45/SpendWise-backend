@@ -190,6 +190,7 @@
 import axios from "axios";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+
 export const sendOtp = async (req, res) => {
   try {
     const { phone } = req.body;
