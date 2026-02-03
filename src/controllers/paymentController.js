@@ -238,9 +238,9 @@
 
 
 
-import razorpay from "./razorpayClient.js";
-import Payment from "./payment.model.js";
-import { verifySignature } from "./payment.verify.js";
+import razorpay from "../config/razorpayClient.js"
+import Payment from "../models/Payment.js";
+import { verifySignature} from "../utils/verifyRazorpaySignature.js"
 import crypto from "crypto";
 
 export const createOrder = async (req, res) => {

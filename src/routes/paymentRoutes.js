@@ -3,7 +3,7 @@ import {
   createOrder,
   verifyPayment,
   razorpayWebhook,
-  saveGiftCardOrder,
+  // saveGiftCardOrder,
 } from "../controllers/paymentController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
@@ -16,6 +16,6 @@ router.post("/create-order", authMiddleware, createOrder);
 router.post("/verify", verifyPayment);
 router.post("/webhook", express.json({ type: "*/*" }), razorpayWebhook);
 
-router.post("/orders/save", saveGiftCardOrder);
+// router.post("/orders/save", saveGiftCardOrder);
 
 export default router;
