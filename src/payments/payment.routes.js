@@ -11,10 +11,7 @@ router.post("/create-order", createOrder);
 router.post("/verify", verifyPayment);
 
 // ✅ IMPORTANT: RAW BODY FOR WEBHOOK
-router.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  razorpayWebhook
-);
+router.post("/webhook", razorpayWebhook);
+
 
 export default router;
