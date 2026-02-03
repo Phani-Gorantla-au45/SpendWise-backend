@@ -70,39 +70,41 @@ export const razorpayWebhook = async (req, res) => {
   console.log("🔥 RAZORPAY WEBHOOK HIT 🔥");
   console.log("Time:", new Date().toISOString());
   console.log("HEADERS:", req.headers);
-  console.log("BODY:", JSON.stringify(req.body, null, 2));
+  console.log("RAW BODY (Buffer):", req.body);
   console.log("==================================");
 
   try {
-    console.log("👉 Webhook Event:", req.body?.event);
-
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     console.log("Webhook secret present:", !!secret);
 
     const signature = req.headers["x-razorpay-signature"];
     console.log("Received Razorpay Signature:", signature);
 
+    // ✅ VERIFY USING RAW BODY
     const generatedSignature = crypto
       .createHmac("sha256", secret)
-      .update(JSON.stringify(req.body))
+      .update(req.body) // 👈 RAW BUFFER
       .digest("hex");
 
     console.log("Generated Signature:", generatedSignature);
 
     if (generatedSignature !== signature) {
-      console.error("❌ SIGNATURE MISMATCH");
+      console.error("❌ WEBHOOK SIGNATURE MISMATCH");
       return res.status(400).json({ message: "Invalid webhook signature" });
     }
 
-    console.log("✅ Signature verified successfully");
+    console.log("✅ Webhook signature verified");
 
-    const event = req.body.event;
-    console.log("Processing event:", event);
+    // ✅ Parse body AFTER verification
+    const payload = JSON.parse(req.body.toString());
+    const event = payload.event;
+
+    console.log("Webhook Event:", event);
 
     if (event === "payment.captured") {
-      console.log("💰 PAYMENT CAPTURED EVENT");
+      console.log("💰 PAYMENT CAPTURED");
 
-      const payment = req.body.payload.payment.entity;
+      const payment = payload.payload.payment.entity;
       console.log("Payment Entity:", payment);
 
       const updated = await Payment.findOneAndUpdate(
@@ -118,9 +120,9 @@ export const razorpayWebhook = async (req, res) => {
     }
 
     if (event === "payment.failed") {
-      console.log("❌ PAYMENT FAILED EVENT");
+      console.log("❌ PAYMENT FAILED");
 
-      const payment = req.body.payload.payment.entity;
+      const payment = payload.payload.payment.entity;
       console.log("Payment Entity:", payment);
 
       const updated = await Payment.findOneAndUpdate(
@@ -129,7 +131,7 @@ export const razorpayWebhook = async (req, res) => {
         { new: true }
       );
 
-      console.log("❌ Payment marked FAILED in DB:", updated);
+      console.log("❌ Payment marked FAILED:", updated);
     }
 
     console.log("✅ Webhook handled successfully");
