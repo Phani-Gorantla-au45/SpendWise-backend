@@ -16,7 +16,7 @@ export const createOrder = async (req, res) => {
     // Save PENDING transaction
     await Payment.create({
       userId,
-      razorpayOrderId: order.id,
+      orderId: order.id,
       amount,
       currency: order.currency,
       status: "PENDING",
