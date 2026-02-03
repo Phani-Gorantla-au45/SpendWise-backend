@@ -7,7 +7,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 
 import authRoutes from "./src/routes/authRoutes.js";
-import paymentRoutes from "./src/routes/paymentRoutes.js";
+import paymentRoutes from "./src/payments/payment.routes.js"
 
 const app = express();
 
