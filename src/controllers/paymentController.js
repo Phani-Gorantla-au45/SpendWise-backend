@@ -144,57 +144,82 @@
 //   }
 // };
 
+// controllers/paymentController.js
 import razorpay from "../config/razorpayClient.js";
 import crypto from "crypto";
 import Payment from "../models/Payment.js";
 import Order from "../models/Order.js";
-import User from "../models/User.js";
+
 export const createOrder = async (req, res) => {
-  const { amount, orderPayload } = req.body;
-  const userId = req.user.id;
+  try {
+    const { amount } = req.body;
+    const userId = req.user.id;
 
-  const razorpayOrder = await razorpay.orders.create({
-    amount: amount * 100,
-    currency: "INR",
-  });
+    const razorpayOrder = await razorpay.orders.create({
+      amount: amount * 100,
+      currency: "INR",
+    });
 
-  await Payment.create({
-    userId,
-    razorpayOrderId: razorpayOrder.id,
-    amount,
-    currency: "INR",
-    orderPayload
-  });
+    await Payment.create({
+      userId,
+      razorpayOrderId: razorpayOrder.id,
+      amount,
+      currency: "INR",
+      status: "PENDING",
+    });
 
-  res.json({ orderId: razorpayOrder.id, key: process.env.RAZORPAY_KEY_ID });
+    res.json({ orderId: razorpayOrder.id, key: process.env.RAZORPAY_KEY_ID });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 export const razorpayWebhook = async (req, res) => {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
-  const signature = req.headers["x-razorpay-signature"];
+  try {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const signature = req.headers["x-razorpay-signature"];
 
-  const generatedSignature = crypto
-    .createHmac("sha256", secret)
-    .update(JSON.stringify(req.body))
-    .digest("hex");
+    const generatedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(JSON.stringify(req.body))
+      .digest("hex");
 
-  if (generatedSignature !== signature)
-    return res.status(400).json({ message: "Invalid signature" });
+    if (generatedSignature !== signature)
+      return res.status(400).json({ message: "Invalid signature" });
 
-  const paymentEntity = req.body.payload.payment.entity;
+    const event = req.body.event;
+    const paymentEntity = req.body.payload.payment.entity;
 
-  const payment = await Payment.findOneAndUpdate(
-    { razorpayOrderId: paymentEntity.order_id },
-    { paymentId: paymentEntity.id, status: "SUCCESS" },
-    { new: true }
-  );
+    if (event === "payment.captured") {
+      await Payment.findOneAndUpdate(
+        { razorpayOrderId: paymentEntity.order_id },
+        { paymentId: paymentEntity.id, status: "SUCCESS" }
+      );
+    }
 
-  const user = await User.findById(payment.userId);
+    if (event === "payment.failed") {
+      await Payment.findOneAndUpdate(
+        { razorpayOrderId: paymentEntity.order_id },
+        { status: "FAILED" }
+      );
+    }
 
-  await Order.create({
-    userId: user._id,
-    uniqueId: user._id,
-    ...payment.orderPayload,
-  });
+    res.json({ received: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+export const saveGiftCardOrder = async (req, res) => {
+  try {
+    const { orderRequest, orderResponse } = req.body;
 
-  res.json({ received: true });
+    const order = await Order.create({
+      orderRequest,
+      orderResponse,
+      status: "SUCCESS",
+    });
+
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
