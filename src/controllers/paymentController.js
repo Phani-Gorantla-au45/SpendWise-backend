@@ -210,15 +210,17 @@ export const razorpayWebhook = async (req, res) => {
 };
 export const saveGiftCardOrder = async (req, res) => {
   try {
-    const { orderRequest, orderResponse } = req.body;
+    const { goldbeeResponse } = req.body;
 
     const order = await Order.create({
-      orderRequest,
-      orderResponse,
-      status: "SUCCESS",
+      refno: goldbeeResponse.refno,
+      cardNumber: goldbeeResponse.cardDetails?.[0]?.cardNumber,
+      cardPin: goldbeeResponse.cardDetails?.[0]?.cardPin,
+      status: goldbeeResponse.status,
+      fullResponse: goldbeeResponse
     });
 
-    res.json({ success: true, order });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
