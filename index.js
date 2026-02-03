@@ -1,4 +1,4 @@
-import "dotenv/config"; // 🔥 MUST BE FIRST — NO OTHER IMPORT ABOVE THIS
+import "dotenv/config"; // MUST be first
 
 console.log("🔥 THIS INDEX FILE IS RUNNING 🔥");
 
@@ -7,11 +7,23 @@ import mongoose from "mongoose";
 import cors from "cors";
 
 import authRoutes from "./src/routes/authRoutes.js";
-// import paymentRoutes from "./src/payments/payment.routes.js"
-import Razorpay from "razorpay";
+import { razorpayWebhook } from "./src/payments/payment.controller.js";
 
 const app = express();
 
+/**
+ * 🔥 1️⃣ RAZORPAY WEBHOOK — MUST COME FIRST
+ * NO express.json() BEFORE THIS
+ */
+app.post(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" }),
+  razorpayWebhook
+);
+
+/**
+ * 🔥 2️⃣ NOW enable JSON for rest of app
+ */
 app.use(cors());
 app.use(express.json());
 
@@ -21,18 +33,11 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 
-// index.js or app.js
-
-
-const paymentRoutes = (await import("./src/payments/payment.routes.js"))
-  .default;
+/**
+ * 🔥 3️⃣ Normal payment routes (NO webhook here)
+ */
+const paymentRoutes = (await import("./src/payments/payment.routes.js")).default;
 app.use("/api/payments", paymentRoutes);
-
-
-
-
-
-
 
 mongoose
   .connect(process.env.MONGO_URI)
