@@ -66,49 +66,76 @@ export const verifyPayment = async (req, res) => {
   }
 };
 export const razorpayWebhook = async (req, res) => {
-  try {
-    console.log("🔥 WEBHOOK HIT:", req.body.event);
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  console.log("==================================");
+  console.log("🔥 RAZORPAY WEBHOOK HIT 🔥");
+  console.log("Time:", new Date().toISOString());
+  console.log("HEADERS:", req.headers);
+  console.log("RAW BODY TYPE:", typeof req.body);
+  console.log("IS BUFFER:", Buffer.isBuffer(req.body));
+  console.log("==================================");
 
+  try {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const signature = req.headers["x-razorpay-signature"];
+
+    if (!Buffer.isBuffer(req.body)) {
+      console.error("❌ BODY IS NOT BUFFER — middleware order is wrong");
+      return res.status(400).json({ error: "Invalid body type" });
+    }
 
     const generatedSignature = crypto
       .createHmac("sha256", secret)
-      .update(JSON.stringify(req.body))
+      .update(req.body) // ✅ RAW BUFFER
       .digest("hex");
 
+    console.log("Received Signature:", signature);
+    console.log("Generated Signature:", generatedSignature);
+
     if (generatedSignature !== signature) {
+      console.error("❌ SIGNATURE MISMATCH");
       return res.status(400).json({ message: "Invalid webhook signature" });
     }
 
-    const event = req.body.event;
+    console.log("✅ Signature verified");
+
+    // Parse AFTER verification
+    const payload = JSON.parse(req.body.toString());
+    const event = payload.event;
+
+    console.log("Webhook Event:", event);
 
     if (event === "payment.captured") {
-      const payment = req.body.payload.payment.entity;
+      const payment = payload.payload.payment.entity;
 
-      await Payment.findOneAndUpdate(
+      const updated = await Payment.findOneAndUpdate(
         { orderId: payment.order_id },
         {
           paymentId: payment.id,
           status: "SUCCESS",
         },
+        { new: true }
       );
+
+      console.log("✅ Payment updated:", updated);
     }
 
     if (event === "payment.failed") {
-      const payment = req.body.payload.payment.entity;
+      const payment = payload.payload.payment.entity;
 
       await Payment.findOneAndUpdate(
         { orderId: payment.order_id },
-        { status: "FAILED" },
+        { status: "FAILED" }
       );
+
+      console.log("❌ Payment failed");
     }
 
     res.json({ received: true });
   } catch (err) {
-    console.error("Webhook error:", err);
+    console.error("🔥 WEBHOOK ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
