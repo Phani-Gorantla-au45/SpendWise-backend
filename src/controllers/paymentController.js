@@ -150,6 +150,7 @@ import crypto from "crypto";
 import Payment from "../models/Payment.js";
 import Order from "../models/Order.js";
 
+//create order
 export const createOrder = async (req, res) => {
   try {
     const { amount } = req.body;
@@ -173,6 +174,7 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+//razor pay web hook
 export const razorpayWebhook = async (req, res) => {
   try {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -208,6 +210,7 @@ export const razorpayWebhook = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+//save gift cards
 export const saveGiftCardOrder = async (req, res) => {
   try {
     const { goldbeeResponse } = req.body;
