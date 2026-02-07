@@ -10,6 +10,10 @@ import authRoutes from "./src/routes/authRoutes.js";
 import { razorpayWebhook } from "./src/payments/payment.controller.js";
 
 const app = express();
+app.get("/ping", (req, res) => {
+  res.send("PING OK");
+});
+
 
 /**
  * 🔥 1️⃣ RAZORPAY WEBHOOK — MUST COME FIRST
