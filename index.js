@@ -58,7 +58,10 @@ import cors from "cors";
 import authRoutes from "./src/routes/authRoutes.js";
 import paymentRoutes from "./src/payments/payment.routes.js";
 
+
+
 const app = express();
+
 
 app.use(cors());
 

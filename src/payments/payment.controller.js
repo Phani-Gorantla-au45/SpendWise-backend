@@ -12,7 +12,7 @@ export const createOrder = async (req, res) => {
       currency: "INR",
       receipt: "rcpt_" + Date.now(),
     });
-
+    //unique id,sku,etc
     // Save PENDING transaction
     await Payment.create({
       userId,
@@ -32,6 +32,7 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 export const verifyPayment = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
@@ -89,13 +90,21 @@ export const razorpayWebhook = async (req, res) => {
       const payment = event.payload.payment.entity;
 
       await Payment.findOneAndUpdate(
-        { orderId: payment.order_id },
         {
+          $or: [
+            { orderId: payment.order_id },
+            { razorpayPaymentLinkId: payment.link_id } // 🔥 for payment links
+          ]
+        },
+        {
+
           paymentId: payment.id,
+          orderId: payment.order_id,   // 🔥 save order id here
           status: "SUCCESS",
         },
-         { new: true }
+        { new: true }
       );
+
     }
 
     res.json({ received: true });
@@ -104,7 +113,4 @@ export const razorpayWebhook = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
-
-
 
