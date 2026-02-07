@@ -9,7 +9,7 @@ import {
 const router = express.Router();
 
 router.post("/register", authMiddleware, registerUser);
-router.post("/sendOtp", sendOtp);
+router.post("/send-Otp", sendOtp);
 router.post("/verify-otp", verifyOtp);
 
 router.get("/profile", authMiddleware, (req, res) => {
