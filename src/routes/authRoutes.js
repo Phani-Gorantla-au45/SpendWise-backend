@@ -5,6 +5,7 @@ import {
   sendOtp,
   verifyOtp
 } from "../controllers/authController.js";
+console.log("🔥 AUTH ROUTES LOADED - send-otp available");
 
 const router = express.Router();
 
